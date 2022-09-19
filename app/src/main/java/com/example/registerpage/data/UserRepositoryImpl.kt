@@ -1,17 +1,16 @@
 package com.example.registerpage.data
 
 
+import com.example.registerpage.data.database.UserDao
 import com.example.registerpage.domain.models.UserData
 import com.example.registerpage.domain.repository.UserRepository
 
-
-class UserRepositoryImpl(): UserRepository {
-    override fun saveName(userData: UserData): Long {
-        TODO("Not yet implemented")
+class UserRepositoryImpl(private val userDao: UserDao) : UserRepository {
+    override suspend fun saveName(userData: UserData): Long {
+        return userDao.upsert(userData)
     }
 
-    override fun getName(): UserData {
-        TODO("Not yet implemented")
+    override suspend fun getName(userId: Int): UserData {
+        return userDao.getUserData(userId)
     }
-
 }

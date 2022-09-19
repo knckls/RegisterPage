@@ -1,45 +1,81 @@
 package com.example.registerpage.presentation
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import java.util.*
+import androidx.lifecycle.viewModelScope
+import com.example.registerpage.domain.models.UserData
+import com.example.registerpage.domain.usecase.SaveUserNameUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-class RegistrationViewModel @Inject constructor(): ViewModel() {
+class RegistrationViewModel @Inject constructor(
+    private val saveUserNameUseCase: SaveUserNameUseCase
+) : ViewModel() {
 
-    private val _registrationState = MutableLiveData(initUserData())
-    val registrationState: LiveData<UserDataUI> = _registrationState
+    private val _registrationState = MutableStateFlow(initUserData())
+    val registrationState: StateFlow<UserDataUI> = _registrationState
 
-    fun onFirstNameChanged(firstName: String){
-        _registrationState.value = _registrationState.value?.copy(firstName = firstName)
+    fun onFirstNameChanged(firstName: String) {
+        _registrationState.value = _registrationState.value.copy(firstName = firstName)
     }
 
-    fun onSecondNameChanged(secondName: String){
-        _registrationState.value = _registrationState.value?.copy(secondName = secondName)
+    fun onSecondNameChanged(secondName: String) {
+        _registrationState.value = _registrationState.value.copy(secondName = secondName)
     }
 
-    fun onBirthdayChanged(birthday: Date){
-        _registrationState.value = _registrationState.value?.copy(birthday = birthday)
+    fun onBirthdayChanged(birthday: String) {
+        _registrationState.value = _registrationState.value.copy(birthday = birthday)
     }
 
-    fun onPasswordChanged(password: String){
-        _registrationState.value = _registrationState.value?.copy(password = password)
+    fun onPasswordChanged(password: String) {
+        _registrationState.value = _registrationState.value.copy(password = password)
     }
 
-    fun onConfirmPasswordChanged(confirmPassword: String){
-        _registrationState.value = _registrationState.value?.copy(confirmPassword = confirmPassword)
+    fun onConfirmPasswordChanged(confirmPassword: String) {
+        _registrationState.value = _registrationState.value.copy(confirmPassword = confirmPassword)
     }
 
-    fun isFieldsValid() =
-        !_registrationState.value?.firstName.isNullOrEmpty() && !_registrationState.value?.secondName.isNullOrEmpty()
+    fun validateFields() {
+        val someFieldIsEmpty = !_registrationState.value.firstName.isNullOrEmpty() &&
+                !_registrationState.value.secondName.isNullOrEmpty() &&
+                !_registrationState.value.birthday.isNullOrEmpty() &&
+                !_registrationState.value.password.isNullOrEmpty() &&
+                !_registrationState.value.confirmPassword.isNullOrEmpty()
+
+        val passwordNotSame =
+            _registrationState.value.password != _registrationState.value.confirmPassword
+
+        _registrationState.value = _registrationState.value.copy(
+            validationResult = when {
+                !someFieldIsEmpty -> ValidationResult.Error("Какие-то поля не заполнены блин!")
+                passwordNotSame -> ValidationResult.Error("Пароли не совпадают!")
+                else -> {
+                    saveUserName()
+                    ValidationResult.Succeed
+                }
+            }
+        )
+    }
+
+    private fun saveUserName() = viewModelScope.launch {
+        saveUserNameUseCase(
+            UserData(
+                id = 1,
+                firstName = _registrationState.value.firstName,
+                secondName = _registrationState.value.secondName
+            )
+        )
+    }
+
 
     private fun initUserData() =
         UserDataUI(
             "",
             "",
-            Date(),
             "",
-            ""
+            "",
+            "",
+            validationResult = ValidationResult.Default
         )
 }

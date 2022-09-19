@@ -1,29 +1,36 @@
 package com.example.registerpage.view
 
-
-
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import by.kirich1409.viewbindingdelegate.viewBinding
-import com.example.registerpage.MainActivity
 import com.example.registerpage.R
 import com.example.registerpage.databinding.FragmentRegistrationBinding
-import com.example.registerpage.domain.usecase.SaveUserNameUseCase
 import com.example.registerpage.presentation.RegistrationViewModel
-import java.util.*
+import com.example.registerpage.presentation.ValidationResult
+import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 class RegistrationFragment : Fragment(R.layout.fragment_registration) {
 
     private val registrationViewModel: RegistrationViewModel by viewModels()
     private val registrationBinding: FragmentRegistrationBinding by viewBinding()
-    private val saveUserNameUseCase by lazy(LazyThreadSafetyMode.NONE) { SaveUserNameUseCase(userRepository = userRepository) }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        //Тут проверять. Если не нулл, то findNavController().navigate(
+        //                            R.id.action_registrationFragment_to_mainFragment
+        //                        )
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        initObserver()
         initListeners(
             onFirstNameChanged = registrationViewModel::onFirstNameChanged,
             onLastNameChanged = registrationViewModel::onSecondNameChanged,
@@ -31,29 +38,40 @@ class RegistrationFragment : Fragment(R.layout.fragment_registration) {
             onPasswordChanged = registrationViewModel::onPasswordChanged,
             onConfirmPasswordChanged = registrationViewModel::onConfirmPasswordChanged,
             onRegistrationButtonClick = {
-                if (registrationViewModel.isFieldsValid()) {
-                    val params = SaveUserNameUseCase()
-                    val result: Boolean = userRepository.saveName(saveParam = params)
-                    //startActivity(this, Intent(this, MainActivity::class.java))
-                    //Todo Перейти на следующий экран и сохранить данные в базе данных
-                } else {
-                    //Todo Показать ошибки
-                }
+                registrationViewModel.validateFields()
             }
         )
+        initObserver()
     }
 
 
     private fun initObserver() {
-        registrationViewModel.registrationState.observe(viewLifecycleOwner) { userData ->
+        lifecycleScope.launch {
+            registrationViewModel.registrationState
+                .flowWithLifecycle(lifecycle)
+                .collect{
+                    if (it.validationResult is ValidationResult.Succeed) {
+                        findNavController().navigate(
+                            R.id.action_registrationFragment_to_mainFragment
+                        )
+                    } else if (it.validationResult is ValidationResult.Error) {
+                        showError(it.validationResult.errorText)
+                    }
+                }
+        }
+    }
 
+    private fun showError(errorText: String) {
+        view?.let {
+            Snackbar.make(it, errorText, Snackbar.LENGTH_LONG)
+                .show()
         }
     }
 
     private fun initListeners(
         onFirstNameChanged: (String) -> Unit,
         onLastNameChanged: (String) -> Unit,
-        onBdateChanged: (Date) -> Unit,
+        onBdateChanged: (String) -> Unit,
         onPasswordChanged: (String) -> Unit,
         onConfirmPasswordChanged: (String) -> Unit,
         onRegistrationButtonClick: () -> Unit,
@@ -65,7 +83,7 @@ class RegistrationFragment : Fragment(R.layout.fragment_registration) {
             onLastNameChanged(lastName.toString())
         }
         etBirthday.doAfterTextChanged { etBDate ->
-//            onBdateChanged(etBDate.toString())
+            onBdateChanged(etBDate.toString())
         }
         etPassword.doAfterTextChanged { password ->
             onPasswordChanged(password.toString())

@@ -5,7 +5,7 @@ import com.example.registerpage.domain.models.UserData
 
 interface UserRepository {
 
-    fun saveName(userData: UserData): Long
+    suspend fun saveName(userData: UserData): Long
 
-    fun getName(): UserData
+    suspend fun getName(userId: Int): UserData
 }
