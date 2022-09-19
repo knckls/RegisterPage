@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">RegisterPage</string>
+    <string name="registration_first_name">Введите имя</string>
+    <string name="registration_second_name">Введите фамилию</string>
+    <string name="registration_birthday">Введите дату рождения</string>
+    <string name="registration_password">Введите пароль</string>
+    <string name="registration_confirm_password">Повторите пароль</string>
+    <string name="registration_button">Зарегистрироваться</string>
+    <string name="hello_blank_fragment">Получить приветствие</string>
+</resources>
